@@ -1,0 +1,80 @@
+                      MKSRCMSG FOR VIRTUAL PASCAL
+
+
+               A port of Mark May's Message Base objects
+
+                 Modifications and port by Pab Sungenis
+                               28 Sep 97
+
+
+        I recently purchased a copy of fPrint UK's Virtual Pascal 1.10.  As
+an OS/2 user since version 2.1, and a Pascal programmer for even longer, I
+welcomed a perfect clone of Borland Pascal 7 that could create OS/2 code.
+Unfortuantely, some of my utilities for RemoteAccess, which used the message
+bases, presented a problem to me.
+
+        Having tried some of the other "utilities" that have been written for
+access to the JAM message base structures under Virtual Pascal 1.10, I found
+myself very frustrated.  For over three years, I had been using a set of
+wonderful OOP routines written by Mark May of Mythical Kingdom Software which
+I found very easy to use, flexible, and powerful.  Plus, it had support for
+Hudson, Squish, and Fido message types, which I didn't really want to have to
+drop from my programs, or write my own code for if I wanted to develop OS/2
+versions of my programs, or completely new programs for OS/2.
+
+        Unfortunately, in his (admirable) zeal to make his routines as fast
+as possible, Mark resorted to a lot of low-level MSDos calls and other assembly
+language which just couldn't compile right as 32-bit code in VP.  Eventually
+tiring of trying to use what was at hand, or waiting for "the perfect utility"
+to come along, I undertook a full translation and port of Mark's source code
+under Virtual Pascal 1.10.
+
+        What you have before you is the result of several weeks' work on my
+part.  98% of all functionality has been retained, and ALL calls documented
+in the MKSRCMSG.DOC file have been retained.
+
+        Whenever possible, Mark's code has been left intact, including his
+copyright notices.  (This IS still his code, not mine.)  Likewise, his full
+documentation has been included.  If you are not familiar with the MK message
+units, PLEASE read it.  The MK units are easy to use, but take some getting
+used to.
+
+        The MSGIMPRT sample program is included in the archive MSGIMPRT.RAR.
+The MSGEXPRT sample program is in the archive MSGEXPRT.RAR.  .VPI files for
+these units have been included in the archive MKVPI.RAR, for those who don't
+really want to build the routines from the ground up.
+
+        If you have any questions or bug reports about this port, feel free
+to contact me at pab@cnx.com, or 1:266/73 via FidoNet.
+
+
+                         WHAT HAS BEEN CHANGED
+
+* Routines which made direct DOS calls, like the file locking procedures
+  in MKFile, have been replaced with calls to their equivalents in the
+  OS/2 API.  Likewise, the TimeOut procedure in MKDOS has been rewritten
+  to use the GetTimeMSec routine from the VPUTILS unit.
+
+* The MKWCRT unit has been removed as unnecessary.
+
+* The MKDOS unit: The "GetResultCode" routine was removed.  It was not used
+  by any of the other units, and was too difficult to port.
+
+* The MKMSGCVT example program has been removed.  The video routines used
+  in it were too difficult to port to OS/2, and the two other sample
+  programs should be enough to give you an idea of how the units work.
+
+
+                                 CAVEAT
+
+        I have tested the Hudson, JAM, Fido, and Squish routines myself in
+daily use.  I have not been able to test the Ezycom routines and cannot
+vouch for them.  I cannot be sure that any of the "undocumented" features
+of this package survived the port intact.  The only thing the porter can
+guarantee is that these routines will take up space on your hard drive.
+Neither the original author nor the porter can be responsible for any
+damage incurred by use of this product.  If taken internally, consult your
+physician.
+
+        The original source code is (C)1993, 1997 by Mark May and Mythical
+Kingdom software.  All rights reserved.

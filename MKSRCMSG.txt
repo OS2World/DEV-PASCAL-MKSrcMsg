@@ -1,0 +1,710 @@
+
+
+
+
+
+
+
+
+
+
+
+
+  ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+  º Mythical Kingdom Software º           MK Msg Access Source            º
+  º      Ü Ü         Ü Ü      º    Squish, Jam, *.Msg, Hudson, and Ezy    º
+  º      ÛÛÛ  Şß Şß  ÛÛÛ      º                                           º
+  º      ÛÛÛÛÛÛÛÛÛÛÛÛÛÛÛ      º     Copyright 1992-1994 by Mark May       º
+  º      ÛÛÛÛÛÛ°°°ÛÛÛÛÛÛ      º            All Rights Reserved            º
+  º  ±±±±±±±±±±±±±±±±±±±±±±±  º                                           º
+  ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+
+
+
+
+
+
+
+
+
+
+
+
+        The products mentioned in this documentation are trademarks
+                          of their individual owners.
+
+        (See MKMsgJam.Pas for copyright/credit for the JAM message
+        base developers)
+
+
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  USAGE  ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        The included programs make up a library of routines to allow you
+    to easily access various message base types in a very generic manner.
+    (I am hopeful that others will extend this to include even more
+    message base types).  To accomplish this a generic AbsMsgObj was created
+    and the Hudson, JAM, Squish, *.Msg, and Ezy objects were descended from it.
+
+    In the MKMsgAbs.Pas file there are comments which explain what the various
+    methods were intended to accomplish.
+
+    To write new messages to the message bases, you need to be sure to call
+    StartNewMsg prior to setting any of the message fields or adding any
+    text.  Text may be added to the message via DoChar, DoString, and
+    DoStringLn calls.  When the message is finished call WriteMsg to save
+    the message to the message base (nothing is updated until this is done).
+
+    The various methods you can call are explained further in the sections
+    below, marked "Reading Messages" and "Writing Messages".  You also
+    may want to examine the included sample applications (MsgExprt, MsgImprt,
+    and MKMsgCvt to see how they used the message objects).
+
+    If anyone develops support for added message base formats, that you
+    will make freely available (for any purpose) to other developers,
+    please contact me about including it in a future release.  The
+    advantage to BBS developers is that this will make it very easy for
+    utility authors to support your message base format.
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Examples Included  ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+    MsgExprt - Exports a message area to a text file
+
+    Example: MsgExprt Out.Txt H007C:\RA\Msg
+
+    A sample application has been included to show how these routines can
+    be used.  MsgExprt will export messages from the various message base
+    formats into a text file.  It requires two command line paramaters.  The
+    first is the name of the text file to use for output.  The second is the
+    message area identifier of the message base to be exported.
+
+
+                         -----------------------
+
+    MsgImprt - Imports a text file into a message base.
+
+    Example: MsgImprt MK.Log /TMark_May /P /E /ASC:\Msg\Logs /SBBS_Log
+
+    An application like this could be used to import log files or other
+    information into your message base.  It is an example of how to
+    write new messages using the MKMsg routines. To use it you give it
+    a command line paramater of the text file to use and various options,
+    the options must be preceeded by either a '/' or a '-'.  You can also
+    embed options in the text file by starting a line with a percent % sign
+    followed by the option.  The following options are supported:
+
+    /FFrom_Name               /TTo_Name            /SSubject_Of_Message
+    /AMsgAreaId               /DDestAddress        /OOrigAddress
+    /P (private)              /E (Erase file afterward)
+
+
+                         -----------------------
+
+    MKMsgCvt - Converts (copies) messages from one msg base to another
+
+    Example: MKMsgCvt H007C:\RA\Msg SC:\Msg\General
+
+    This application allows you to quickly convert a message base from
+    one format to another.  It displays a "banner" screen as it converts,
+    to show its progress.  An application like this could be useful when
+    converting to a new message base format.
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Message Area Id's  ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+    To identify message areas, I use something I call a MsgAreaId.  It
+    identifies both the type of message base and the path/area that it
+    is in.  With a MsgAreaId, a program can open the message base without
+    needing to look up anything in the BBS config files.  I encourage others
+    to adopt them as well, so that people who use your program can get
+    used to a common way of specifying the message areas.
+
+    Message area identifiers have the following formats:
+
+    Squish:  S followed by the path\filename of the message area
+       Example:  SC:\Max\Msg\Muffin
+
+    Hudson   H followed by a 3 digit area number follow by the msg base path
+       Example:  H007C:\Quick\MsgBase\
+
+    Fido(*.Msg) F followed by the message path
+       Example:  FD:\FD\Mail\
+
+    JAM J followed by the path\filename of the message area
+       Example: JC:\RA2\MSG\RA_UTIL
+
+    Ezycom E followed by the 4 digit area number followed by the msg base path
+       Example: E0001F:\EZY\MSG
+
+    It you use the MKOpen unit to init/open your message areas, your
+    actual application should only need to know about the abstract message
+    object.  This may allow you to incorporate future message base types with
+    absolutely no changes to your code.
+
+
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Reading Messages ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+   First create a variable that is an abstract message pointer (type
+   AbsMsgPtr).  This can either be local to a procedure or a global
+   variable.
+
+        Var
+          MsgOut: AbsMsgPtr;
+
+   Next allocate the message object and initialize it.  I generally use
+   a case statement to handle multiple message base types.
+
+        MsgBaseType := UpCase(AreaId[1]);
+        Case MsgBaseType of
+          'H': MsgOut := New(HudsonMsgPtr, Init);
+          'S': MsgOut := New(SqMsgPtr, Init);
+          'F': MsgOut := New(FidoMsgPtr, Init);
+          'E': MsgOut := New(EzyMsgPtr, Init);
+        Else
+          Begin
+          WriteLn('Invalid message base type');
+          Halt(1);
+          End;
+
+   The next step is to set the message base path (which for some message
+   base types may also include an area number).
+
+        MsgPath := Copy(AreaId,2,128);
+        MsgOut^.SetMsgPath(Copy(MsgPath);
+
+   After setting the message base path, you are now ready to open the
+   message base.
+
+        If MsgOut^.OpenMsgBase <> 0 Then
+          Begin
+          WriteLn('Error opening message base');
+          Halt(2);
+          End;
+
+   Next we would seek to our starting message number.
+
+        StartingNumber := 1;
+        MsgOut^.SeekFirst(StartingNumber);
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Reading Messages ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+   After the seek we would check whether a message was found and often
+   loop until we run out of messages.
+
+
+        While MsgOut^.SeekFound Do
+
+
+  Before using any of the message header fields we need to call MsgStartUp
+  which reads in the message header and initializes for that message.
+
+
+          Begin
+          MsgOut^.MsgStartUp;
+
+  Next we would get various items of information about the message and do
+  whatever processing we needed to with them.
+
+         WriteLn('Msg Number: ', MsgOut^.GetMsgNum);
+         WriteLn('From: ', MsgOut^.GetFrom);
+         WriteLn('To: ', MsgOut^.GetTo);
+
+  Before starting to process the message text itself we need to call the
+  MsgTxtStartUp procedure (this reads in the message text, which may not
+  have been done when MsgStartUp was called to speed up processing when
+  only the message header information was needed).
+
+         MsgOut^.MsgTxtStartUp;
+
+  Next we get a word-wrapped string out of the message text (you can also
+  use GetChar to get the text one character at a time).
+
+        StLen := 78;
+        TmpStr := MsgOut^.GetString(StLen);
+
+  We use the EOM (end of message) function to see if there is more text
+  left in the message to process.
+
+        While (Not MsgOut^.EOM) Do
+          Begin
+          WriteLn(TmpStr);
+          TmpStr := MsgOut^.GetString(StLen);
+          End;
+
+  We then seek the next message.
+
+        MsgOut^.SeekNext;
+        End;
+
+  Finally we close the message base and dispose of the message object.
+
+      If MsgOut^.CloseMsgBase <> 0 Then;
+      Dispose(MsgOut, Done);
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Writing Messages ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  We use a similar set of methods when we want to write a new message to the
+  message base.
+
+  First we again initialize the message object, set the message base path,
+  and open the message base.
+
+        MsgWriteError := 0;
+        Case UpCase(AreaId[1]) of
+          'S': TMsg := New(SqMsgPtr, Init);       {Squish area}
+          'H': TMsg := New(HudsonMsgPtr, Init);   {Hudson area}
+          'F': TMsg := New(FidoMsgPtr, Init);     {*.Msg area}
+          'E': TMsg := New(EzyMsgPtr, Init);      {Ezy msg area}
+          Else
+            MsgWriteError := 10;
+          End;
+        If MsgWriteError = 0 Then
+          Begin
+          TMsg^.SetMsgPath(Copy(AreaId, 2, 128);  {Set msg base path}
+          MsgWriteError := TMsg^.OpenMsgBase;
+          End;
+
+  Next we tell the message object what type of mail is kept in this
+  message area (this is done since some message base types keep
+  different flags set on echomail and netmail areas).
+
+        If MsgWriteError = 0 Then
+          Begin
+          Case Config^.GetMsgType(Area) of        {set type of message}
+            Normal: TMsg^.SetMailType(mmtNormal);
+            EchoMail: TMsg^.SetMailType(mmtEchoMail);
+            NetMail: TMsg^.SetMailType(mmtNetMail);
+            End;
+
+  Then we call StartNewMsg to get everything setup for adding a new
+  message (sets all the fields to default values).
+
+
+          TMsg^.StartNewMsg;       {initialize for adding msg}
+          End;
+
+  We then set the various message header fields.
+
+        If MsgWriteError = 0 Then
+          Begin
+          TMsg^.SetFrom('From Name');           {Set from name}
+          TMsg^.SetTo('To Name');               {Set to name}
+          TMsg^.SetSubj('Subject goes here');   {Set message subject}
+          TMsg^.SetDate(DateStr(GetDosDate));   {Set msg date mm-dd-yy}
+          TMsg^.SetTime(TimeStr(GetDosDate));   {Set msg time hh:mm}
+          TMsg^.SetEcho(True);                  {Should msg be echoed}
+          TMsg^.SetRefer(ReferenceNumber);      {Set reference #, often 0)
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Writing Messages ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  We then add our message text using DoStringLn, DoString, and/or DoChar.
+  If we are creating a Fido echomail message we should also add a tear and
+  origin line.
+
+          TMsg^.DoStringLn('Message text string 1');
+          TMsg^.DoStringLn('Message text string 2');
+            {Add msg text using the String StringLn or Char methods}
+            {make sure that a #13 occurs before the tearline}
+
+
+  Next we write the message to the message base (up until this time
+  nothing has been saved and you could safely abort the message
+  without harm).
+
+          MsgWriteError := TMsg^.WriteMsg;    {Save the message}
+          End;
+
+  Often you will then want to check what message number was given to
+  your newly created message.
+
+        NewMsgNum := TMsg^.GetMsgNum;   {Check what number was assigned to it}
+
+  And finally we again close the message base and deallocate memory.
+
+        If TMsg^.CloseMsgBase <> 0 Then; {Close msg base}
+        Dispose(TMsg, Done); {Dispose of the object pointer}
+        End.
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Method Descriptions ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  Constructor Init;
+    Initializes the message object and allocates the memory that the message
+    object will use.
+
+  Destructor Done;
+    Deallocates the memory the message object uses and does general clean up
+
+  Procedure SetMsgPath(MsgPath: String)
+    Sets the path to the message base.  Note that some types of message bases
+    will need an area number included as part of the message path.
+
+  Function OpenMsgBase: Word;
+    Opens the message base.  A zero is returned if the open is successful
+    otherwise an error number is returned.
+
+  Function CloseMsgBase: Word;
+    Closes the message base and returns zero for success, otherwise it
+    returns an error number.
+
+  Function CreateMsgBase(MaxMsg: Word; MaxDays: Word): Word;
+    Used to create a new message base.  Some message base types use the
+    maximum messages and/or maximum days to enable them to do automatic
+    message purging.  Again a zero is returned for success.
+
+  Function  MsgBaseExists: Boolean;
+    Used to check whether a message base actually exists.
+
+  Function  LockMsgBase: Boolean;
+    Used to lock the message base so that other programs cannot write
+    messages to it.  Note that you don't every need to call this yourself
+    as the WriteMsg function will call it itself.  If you are writing a
+    large number of messages at a time though, you can improve speed by
+    locking before you start and unlocking after you finish.
+
+
+  Function  UnLockMsgBase: Boolean;
+    Releases the lock that was put on the message base by LockMsgBase.
+
+  Procedure SetDest(Var Addr: AddrType);
+    Sets the destination address (zone:net/node.point) for the message.
+
+  Procedure SetOrig(Var Addr: AddrType);
+    Sets the originating address for the message.
+
+  Procedure SetFrom(Name: String);
+    Sets the name of the author of the message.  Generally passed as a
+    mixed case string, with the message object converting it if another
+    format is needed.
+
+  Procedure SetTo(Name: String);
+    Sets the name of the person the message was written to.
+
+  Procedure SetSubj(Str: String);
+    Sets the subject of the message.
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Method Descriptions ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  Procedure SetCost(SCost: Word);
+    Sets the netmail cost of the message.
+
+  Procedure SetRefer(SRefer: LongInt);
+    Sets the message number of the message that the current message
+    was replying to.
+
+  Procedure SetSeeAlso(SAlso: LongInt);
+    Sets the reply message number of the message that is replying to the
+    current message.
+
+  Procedure SetDate(SDate: String);
+    Sets the date the message was written in MM-DD-YY format.
+
+  Procedure SetTime(STime: String);
+    Sets the time the message was written in HH:MM format.
+
+  Procedure SetLocal(LS: Boolean);
+  Procedure SetRcvd(RS: Boolean);
+  Procedure SetPriv(PS: Boolean);
+  Procedure SetCrash(SS: Boolean);
+  Procedure SetKillSent(SS: Boolean);
+  Procedure SetSent(SS: Boolean);
+  Procedure SetFAttach(SS: Boolean);
+  Procedure SetReqRct(SS: Boolean);
+  Procedure SetReqAud(SS: Boolean);
+  Procedure SetRetRct(SS: Boolean);
+  Procedure SetFileReq(SS: Boolean);
+    These procedures set the various message flags for local, received,
+    private, crash netmail, kill/sent, sent, file attach, request receipt,
+    request audit, return receipt, file request.
+
+  Procedure DoString(Str: String);
+    Adds a string to the text of the message.
+
+  Procedure DoChar(Ch: Char);
+    Adds a character to the text of the message.
+
+  Procedure DoStringLn(Str: String);
+    Adds a string and newline to the text of the message.
+
+  Function  WriteMsg: Word;
+    Writes the message you are creating to the message base.  A zero is
+    returned if the process was successful.
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Method Descriptions ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  Function  GetChar: Char;
+    Get a character from the message text.  This is valid only when reading
+    messages not when creating them.
+
+  Function  EOM: Boolean;
+    Used to check whether we are at EOM (End Of Message) which would mean
+    that no more characters remain in the text of the current message.
+
+  Function  GetString(MaxLen: Word): String;
+    Gets a word-wrapped string from the text of the message that can be
+    up to MaxLen characters long.
+
+  Function  WasWrap: Boolean;
+    Tells us whether the last message text line we retrieved was word-
+    wrapped or whether and actual newline character was found.
+
+  Function  GetFrom: String;
+  Function  GetTo: String;
+  Function  GetSubj: String;
+  Function  GetCost: Word;
+  Function  GetDate: String;
+  Function  GetTime: String;
+  Function  GetRefer: LongInt;
+  Function  GetSeeAlso: LongInt;
+  Procedure GetOrig(Var Addr: AddrType);
+  Procedure GetDest(Var Addr: AddrType);
+    These functions allow us to retrieve information from the message
+    header.  The information retrieved is in the same format as the
+    corresponding Set procedure.
+
+  Function  GetMsgNum: LongInt;
+    Gets the message number of the current message we are reading.  It
+    will also return the created message number after WriteMsg has been
+    called (undefined prior to that time on created messages).
+
+  Function  IsLocal: Boolean;
+  Function  IsCrash: Boolean;
+  Function  IsKillSent: Boolean;
+  Function  IsSent: Boolean;
+  Function  IsFAttach: Boolean;
+  Function  IsReqRct: Boolean;
+  Function  IsReqAud: Boolean;
+  Function  IsRetRct: Boolean;
+  Function  IsFileReq: Boolean;
+  Function  IsRcvd: Boolean;
+  Function  IsPriv: Boolean;
+  Function  IsDeleted: Boolean;
+  Function  IsEchoed: Boolean;
+    A series of functions that returns the status of the various message
+    flags for Local, Crash NetMail, Kill/Sent, Sent, File Attach, Request
+    Receipt, Request Audit, Return Receipt, File Request, Received,
+    Private, Deleted, and Echoed.
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Method Descriptions ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  Function  GetMsgLoc: LongInt;
+  Procedure SetMsgLoc(ML: LongInt);
+    This pair of methods allos you to get a longint that represents the
+    current message location (which may be a message number, seek position,
+    etc) that you can store.  Later you can call SetMsgLoc with this value
+    to again make that message the current message.  In some message base
+    types this may be much quicker than doing a seekfirst to re-find it.
+
+  Procedure MsgStartUp;
+    Reads in the message header of a message so that you have access to
+    its contents.
+
+  Procedure MsgTxtStartUp;
+    Reads in the text of a message so that you have access to it.
+
+  Procedure StartNewMsg;
+    Initializes fields to default values prior to starting to create a
+    new message.
+
+  Procedure SeekFirst(MsgNum: LongInt);
+    Finds the first message number greater than or equal to the message
+    number you pass it.  You should use SeekFound to see if this was
+    successful.
+
+  Procedure SeekNext;
+    Finds the next message after the current message.
+
+  Procedure SeekPrior;
+    Finds the message prior to the current message.
+
+  Function  SeekFound: Boolean;
+    Tells whether the SeekFirst, SeekNext, or SeekPrior request was
+    successful.
+
+  Procedure YoursFirst(Name: String; Handle: String);
+  Procedure YoursNext;
+  Function  YoursFound: Boolean;
+    These three methods are similar to the seek methods, but instead
+    search for unreceived mail to an individual.  You may pass both
+    a name and a handle to search for both at once.
+
+  Function  GetHighMsgNum: LongInt;
+    Returns the highest message number in the message base.
+
+  Procedure SetMailType(MT: MsgMailType);
+    Sets the type of mail in the area (local, echo, or net).
+
+  Function  GetSubArea: Word;
+    Gets the subarea number in a Hudson message base to allow one pass
+    with YoursFirst/YoursNext so that your mail searches are quicker.
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  Method Descriptions ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  Procedure ReWriteHdr;
+    Rewrites the message header of the current message.  This is generally
+    done after changing a message flag (such as the "received" flag).  The
+    flags are safe to assume as part of the message header.  The
+    To/From/Subject information may not be part of the header in all future
+    message base types.
+
+  Procedure DeleteMsg;
+    A procedure that deletes the current message.
+
+  Procedure SetEcho(ES: Boolean);
+    Determines whether the message is flagged as waiting to be exported.
+
+  Function  NumberOfMsgs: LongInt; Virtual;
+    Gets the number of messages in a message area.
+
+  Function  GetLastRead(UNum: LongInt): LongInt;
+  Procedure SetLastRead(UNum: LongInt; LR: LongInt);
+    Gets and sets the last read pointers for the message area for a
+    specified user number.  The user numbers are zero-based (ie the
+    sysop is generally user number zero).
+
+  Function  GetMsgDisplayNum: LongInt;
+    This function will either return the message number itself, or on
+    some message base types may return a smaller message number more
+    suitable for user display.
+
+  Function  GetTxtPos: LongInt;
+  Procedure SetTxtPos(TP: LongInt);
+    These two methods allow you to get and later restore the current
+    position in the message text.  You should not make any other
+    assumptions about the value used by these methods other than
+    that.
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  PRODUCT SUPPORT  ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+
+    Help or suggestions can be submitted in a variety of ways.
+
+    *  Through the FidoNet EchoMail MK Conference (AreaTag MK).
+        -   This is a product support area for all Mythical Kingdom
+        -   Software.
+
+    *  If the MK Echo is not available in your area, it is available from
+       the following addresses:
+
+       1:110/290       1:3625/457       1:151/1000       1:151/1003
+
+    *  Through RIME (RelayNet) at address ->MYTHKING.
+
+    *  Via NetMail to Mark May (Author) at address 1:110/290.
+        -   You will have to poll for your reply after two days due to the
+        -   product being free.  An answer should be waiting for you by
+        -   then.  If you do not receive a reply within 5 days, please
+        -   re-send your message.  If you don't pick up your reply, it will
+        -   be deleted in a week or two.
+
+    *  Call the Mythical Kingdom Tech BBS directly:
+        -   DataLine : 513-237-7737 (9600 Baud HST/V32)
+
+    *  Or, mail your questions/suggestions to:
+
+            Mark May
+            Mythical Kingdom Software
+            P.O. Box 24808
+            Huber Heights, OH  45424
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  WARRANTY AND DISCLAIMER  ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        The only thing the author can guarantee is that MKSrcMsg will take up
+    space on your hard drive.  Beyond that, you use the program at your own
+    risk.   MKSrcMsg has been tested in many different environments with no
+    damage, loss of data, or compromised security, and we cannot guarantee
+    how it will work in your environment.  The author will not be held
+    responsible for any damage to your system.
+
+
+
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ[  REGISTRATION  ]ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+        A registration fee is not required for these programs.
+    If you are a shareware author, consider sending me a registered
+    version of your program in exchange for your use of this program.
+
+        I would appreciate it if you would either fill in the form
+    below and return it to me, or to drop me a postcard.  This will
+    help in measuring the usefulness of MK Msg Src and help in
+    determining how time is allocated between this and other projects.
+
+        Registration Information:                  MKSrcMsg v1.06
+
+
+        Name:         ____________________________________________
+
+        Address:      ____________________________________________
+
+                      ____________________________________________
+
+        City, ST Zip  ____________________________________________
+
+
+        BBS Name:     ____________________________________________
+
+
+        BBS Phone Number  (     )        -
+
+
+        Applicable NetWork Address(es) (IE: FidoNet, Etc.)
+
+        __________________________________________________________
+
+        __________________________________________________________
+
+
+        Any suggestions or comments ______________________________
+
+        __________________________________________________________
+
+        __________________________________________________________
+
+
+        Registrations should be mailed to:
+
+              Mark May
+              Mythical Kingdom Software
+              P.O. Box 24808
+              Huber Heights, OH  45424
+
+
+
